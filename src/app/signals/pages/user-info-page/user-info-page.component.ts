@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { UsersServiceService } from '../../services/users-service.service';
 import { User } from '../../interfaces/user-request';
 
@@ -12,7 +12,14 @@ export class UserInfoPageComponent implements OnInit{
   public userId = signal(1);
 
   public currentUser = signal<User|undefined>(undefined);
-  private userWasFound = signal(true);
+  public userWasFound = signal(true);
+
+  // CON ESTA SEÑAL COMPUTADA SIEMPRE VAMOS A TENER UN STRING
+  public fullName = computed<string>(() => {
+    if(!this.currentUser()) return 'Usuario no encontrado';
+
+    return `${this.currentUser()?.first_name} ${this.currentUser()?.last_name}`;
+  });
 
   ngOnInit(): void {
     this.loadUser(this.userId())
@@ -27,10 +34,21 @@ export class UserInfoPageComponent implements OnInit{
     this.currentUser.set(undefined);
 
     this.usersService.getUserById(id)
-      .subscribe(user => {
+      .subscribe(//user => {
         //console.log({user});
         // CON EL SET SE SOBRESCRIBE, NO SE MUTA O LLAMA EL VALOR ANTERIOR
-        this.currentUser.set(user)
+       // this.currentUser.set(user)
+      {
+        // CUANDO TODO SALE BIEN
+        next: (user) => {
+          this.currentUser.set(user);
+          this.userWasFound.set(true);
+        },
+        // CUANDO SUCEDE UN ERROR
+        error: () => {
+            this.userWasFound.set(false)
+            this.currentUser.set(undefined);
+          }
       })
 
   }
